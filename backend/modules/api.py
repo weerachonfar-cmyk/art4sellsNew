@@ -708,6 +708,8 @@ def dispatch(method, path, query, headers, raw_body, peer_ip=None):
             raise not_found("ปลายทาง API")
 
         storage.begin_request()                        # cache การอ่านต่อ request (มีผลเฉพาะ Redis)
+        if path != "/api/health":
+            storage.prefetch(prefetch_collections(path))   # อ่านที่ต้องใช้แน่ ๆ ด้วย MGET รอบเดียว แทนการ GET ต่อกันทีละตัว
         token, token_source = extract_token(headers)
         client_ip = session_cookie.client_ip(headers, peer_ip)
         if path != "/api/health" and moderation.is_blocked_ip(client_ip):
@@ -733,6 +735,24 @@ def dispatch(method, path, query, headers, raw_body, peer_ip=None):
         return Response(500, error_payload("INTERNAL_ERROR", "เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่อีกครั้ง"), [])
     finally:
         storage.end_request()
+
+
+# collection ที่ "ทุก request" อ่านอยู่แล้ว (ตรวจ IP ที่ถูกบล็อก + ตรวจ session + หาผู้ใช้) และที่หน้าหลัก ๆ ใช้เสมอ
+# อ่านรอบเดียวด้วย MGET ลดจาก 3-7 รอบ เหลือ 1-2 รอบต่อ request  (collection ที่ไม่อยู่ในรายการนี้ยังอ่านทีละตัวเมื่อถึงเวลาใช้)
+PREFETCH_CORE = ("blocked_ips", "sessions", "users")
+PREFETCH_BY_PREFIX = (
+    ("/api/artworks", ("orders", "categories", "artworks", "promotions")),
+    ("/api/cart", ("orders", "categories", "carts")),
+    ("/api/wishlist", ("orders", "categories", "wishlists")),
+)
+
+
+def prefetch_collections(path):
+    """คืน tuple ของ collection ที่ควรอ่านล่วงหน้าสำหรับ path นี้"""
+    for prefix, extra in PREFETCH_BY_PREFIX:
+        if path == prefix or path.startswith(prefix + "/"):
+            return PREFETCH_CORE + extra
+    return PREFETCH_CORE
 
 
 def handle_request(method, path, query, headers, raw_body):

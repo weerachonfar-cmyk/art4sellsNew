@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Hanken+Grotesk:wght@400;500;600&display=swap');
 :root{--bg:#f7f7f9;--ink:#16161d;--mute:#6b6b78;--line:#e4e4ea;--acc:#4b4fc9;--r:14px}
 *{box-sizing:border-box;margin:0}
 body{background:var(--bg);color:var(--ink);font:15px/1.6 "Hanken Grotesk",system-ui,sans-serif}
@@ -69,3 +68,12 @@ textarea{font:inherit;padding:11px 14px;border:1px solid var(--line);border-radi
 .btn.danger{background:#b3261e;border-color:#b3261e;color:#fff}.btn.danger[disabled]{opacity:.5}
 [hidden]{display:none!important}
 .toast{pointer-events:none}
+
+/* ---- Loading spinner ---- */
+.a4s-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:50vh;color:var(--mute)}
+.a4s-spinner{width:44px;height:44px;border:4px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:a4s-spin .8s linear infinite}
+@keyframes a4s-spin{to{transform:rotate(360deg)}}
+/* small corner spinner: shown by httpClient.js when any API call takes longer than ~0.3 s (hidden while the big page loader is showing) */
+.a4s-busy{position:fixed;right:18px;bottom:18px;z-index:60;width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--acc);border-radius:50%;background:var(--bg);box-shadow:0 2px 10px rgba(0,0,0,.15);animation:a4s-spin .8s linear infinite;pointer-events:none}
+body:has(.a4s-loading) .a4s-busy{display:none}
+@media (prefers-reduced-motion:reduce){.a4s-spinner,.a4s-busy{animation-duration:2.4s}}

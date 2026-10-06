@@ -97,6 +97,13 @@ def end_request():
     get_provider().end_request()
 
 
+def prefetch(collections):
+    """อ่านล่วงหน้าหลาย collection ในรอบเดียว (มีผลเฉพาะ Redis - ลดจำนวนรอบ network ต่อ request)"""
+    for name in collections:
+        _check_collection(name)
+    get_provider().prefetch(collections)
+
+
 def ensure_initialized(seed_function):
     """seed ข้อมูลตัวอย่างครั้งแรกเท่านั้น: ยังไม่เคย initialize -> ล็อก -> เช็คอีกรอบ -> seed -> ทำเครื่องหมาย
     คืน True ถ้าเพิ่ง seed  ไม่ seed ซ้ำทุก request / ทุก cold start (และไม่ทับข้อมูลจริง)

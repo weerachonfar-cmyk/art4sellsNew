@@ -60,6 +60,9 @@ class BaseProvider:
     def end_request(self):
         pass
 
+    def prefetch(self, collections):                   # อ่านล่วงหน้าหลาย collection ในรอบเดียว (เฉพาะ Redis) - provider อื่นไม่ต้องทำอะไร
+        pass
+
 
 # ---------------------------------------------------------------------------
 # JSONStorage (Local / Academic Persistence)
@@ -231,6 +234,25 @@ class RedisStorage(BaseProvider):
 
     def end_request(self):
         self._tl.cache = None
+
+    def prefetch(self, collections):
+        """อ่านหลาย collection ด้วย MGET รอบเดียว แล้วใส่ cache ของ request นี้ (แทนที่จะยิง GET ทีละ collection ต่อกัน)
+        - เร็วขึ้นมากเมื่อ Function กับ Redis อยู่ไกลกัน (แต่ละรอบ = 1 network round trip)
+        - Redis ล่ม = raise StorageError ที่จุดเดียวกับที่ read() ตัวแรกจะ raise (พฤติกรรมเดิม ไม่กลืน error)
+        - ไม่มี cache (ไม่ได้อยู่ใน request) หรืออยู่ใน lock = ไม่ทำอะไร เพราะใน lock ต้องอ่านของสดเสมอ
+        """
+        cache = getattr(self._tl, "cache", None)
+        if cache is None or self._depth() != 0:
+            return
+        wanted = [name for name in dict.fromkeys(collections) if name not in cache]
+        if not wanted:
+            return
+        values = self.client.command("MGET", *[self._key(name) for name in wanted])
+        if not isinstance(values, list) or len(values) != len(wanted):
+            return                                     # รูปแบบคำตอบแปลก: ปล่อยให้ read() อ่านทีละตัวตามปกติ
+        for name, raw in zip(wanted, values):
+            if raw is None or isinstance(raw, str):
+                cache[name] = raw
 
     def _depth(self):
         return getattr(self._tl, "depth", 0)

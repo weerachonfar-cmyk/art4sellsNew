@@ -21,6 +21,10 @@ A4S.config={apiBase:"/api",allowMockFallback:isLocalHost,healthTimeoutMs:2500};
  };
  A4S.ready=(async function(){
   if(AppStorage.get("forceMock",false))useMock();
+  else if(!A4S.config.allowMockFallback){
+   var m=await A4S.api.auth.me();                          /* deployed site: ONE call tells both whether the backend is up (ok) and who the cookie belongs to; saves the separate /health round trip */
+   if(!m.ok)A4S.backendDown=true;                          /* 503 / network down: public pages show an error, private actions are refused */
+  }
   else{
    var r=await A4S.http.request("GET","/health",{timeout:A4S.config.healthTimeoutMs});
    if(r.ok)await A4S.api.auth.me();                       /* ask the server whether the session cookie is still valid */

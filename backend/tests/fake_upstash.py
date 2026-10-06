@@ -41,6 +41,12 @@ class FakeUpstash:
             if name == "GET":
                 item = self._alive(args[1])
                 return item[0] if item else None
+            if name == "MGET":
+                values = []
+                for key in args[1:]:
+                    item = self._alive(key)
+                    values.append(item[0] if item else None)
+                return values
             if name == "EXISTS":
                 return 1 if self._alive(args[1]) else 0
             if name == "DEL":

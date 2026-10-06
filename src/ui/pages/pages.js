@@ -88,7 +88,10 @@ manage:async function(){   /* artist's own CRUD panel: create / edit / submit fo
   return '<tr><td>'+U.esc(w.title)+(w.rejectReason?'<div class="mute small">Rejected: '+U.esc(w.rejectReason)+'</div>':'')+'</td><td>'+U.money(w.price)+'</td><td><span class="pill '+U.cls(w.status)+'">'+U.esc(w.status)+'</span></td><td>'
   +(open?'<button class="btn ghost sm" data-art-edit="'+U.esc(w.id)+'">Edit</button> <button class="btn sm" data-art-submit="'+U.esc(w.id)+'">Submit</button> ':'')
   +'<button class="btn ghost sm" data-art-del="'+U.esc(w.id)+'">Delete</button></td></tr>'}).join("");
- $("#manage").innerHTML=stats+'<section><h2>My Artwork</h2><div class="tw"><table><tr><th>Title</th><th>Price</th><th>Status</th><th></th></tr>'+(rows||'<tr><td colspan="4" class="mute">No artwork yet. Create your first piece below.</td></tr>')+'</table></div></section>'
+ var count=function(st){return list.filter(function(w){return w.status===st}).length};
+  var stats='<section><h2>Dashboard</h2><div class="stats">'+[["Total artwork",list.length],["Pending approval",count("PENDING_APPROVAL")],["Approved",count("APPROVED")],["Sales revenue",U.money(revenue)]]
+   .map(function(x){return '<div class="stat"><span class="mute">'+x[0]+'</span><b>'+(typeof x[1]==="number"?x[1].toLocaleString():x[1])+'</b></div>'}).join("")+'</div></section>';
+  $("#manage").innerHTML=stats+'<section><h2>My Artwork</h2><div class="tw"><table><tr><th>Title</th><th>Price</th><th>Status</th><th></th></tr>'+(rows||'<tr><td colspan="4" class="mute">No artwork yet. Create your first piece below.</td></tr>')+'</table></div></section>'
  +'<section><h2 id="formTitle">New artwork</h2><form class="form" id="artForm" style="margin:0" novalidate><input type="hidden" name="artId">'
  +'<input name="title" placeholder="Title"><input name="price" type="number" step="0.01" min="0" placeholder="Price (THB)">'
  +'<select name="category">'+opts(cats.map(function(c){return [c.id,c.name]}))+'</select><select name="sale_type">'+opts([["UNLIMITED","UNLIMITED"],["LIMITED","LIMITED"]])+'</select>'

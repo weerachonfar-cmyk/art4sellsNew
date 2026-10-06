@@ -119,6 +119,15 @@ A4S.remoteApi=(function(){
  A.payments={
   get:async function(orderId){var r=await H.get("/orders/"+encodeURIComponent(orderId)+"/payment");return r.ok?{ok:true,payment:r.data}:r},
   submit:async function(orderId,d){var r=await H.post("/orders/"+encodeURIComponent(orderId)+"/payment",d);return r.ok?{ok:true,payment:r.data}:r},
+  /* slip image: same checks and JSON/base64 transport as artwork images (PNG / JPG / WebP, 3 MB) */
+  uploadSlip:async function(orderId,file){
+   var bad=A.artworks.checkFile(file);if(bad)return{ok:false,error:bad,errors:{slip:bad}};
+   var ext=String(file.name).split(".").pop().toLowerCase(),mime=ext==="png"?"image/png":ext==="webp"?"image/webp":"image/jpeg",b64;
+   try{b64=await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){var s=String(fr.result);res(s.slice(s.indexOf(",")+1))};fr.onerror=function(){rej(new Error("read"))};fr.readAsDataURL(file)})}
+   catch(e){return{ok:false,error:"Could not read the selected file",errors:{slip:"Could not read the selected file"}}}
+   var r=await H.request("POST","/orders/"+encodeURIComponent(orderId)+"/payment/slip",{body:{filename:"slip."+ext,content_type:mime,data_base64:b64},timeout:30000});
+   return r.ok?{ok:true,slip:r.data.slip}:r},
+  slipUrl:function(orderId){return A4S.config.apiBase+"/orders/"+encodeURIComponent(orderId)+"/payment/slip"},
   verify:async function(orderId,d){var r=await H.post("/orders/"+encodeURIComponent(orderId)+"/payment/verify",d);return r.ok?{ok:true,payment:r.data}:r}
  };
  A.promotions={

@@ -1493,6 +1493,82 @@ def test_payment_slip_is_a_typed_word():
     assert st == 200 and res["status"] == "PAID", res
 
 
+<<<<<<< HEAD
+=======
+def test_payment_slip_image_upload_and_admin_review():
+    buyer, admin, artist = login("buyer"), login("admin"), login("mika")
+    other = login("ton")
+    aid = tb.make_approved_artwork(artist, admin, title="Slip Image Order", price=321, sale_type="LIMITED")
+    assert call("POST", "/api/cart", {"artwork_id": aid}, buyer)[0] == 201
+    st, checked = call("POST", "/api/cart/checkout", None, buyer)
+    assert st == 201, checked
+    order = checked["orders"][0] if "orders" in checked else (checked.get("order") or checked)
+    oid, total = order["id"], order["total"]
+    pay = {"order_id": oid, "method": "QR_PAYMENT", "submitted_amount": total, "slip": ""}
+    slip_url = "/api/orders/" + oid + "/payment/slip"
+
+    # no image and no secret word -> refused; nothing to view yet
+    st, res = call("POST", "/api/orders/" + oid + "/payment", pay, buyer)
+    assert st == 400 and "slip" in res["error"]["fields"], res
+    assert call_full("GET", slip_url, token=buyer).status == 404
+
+    # bad uploads: not an image / wrong type / script hidden in the image / not the owner / not signed in
+    assert call("POST", slip_url, upload_body(b"not an image at all", "slip.png"), buyer)[0] == 400
+    assert call("POST", slip_url, upload_body(make_image("PNG"), "slip.jpg", "image/jpeg"), buyer)[0] == 400
+    assert call("POST", slip_url, upload_body(make_image("PNG") + b"<script>alert(1)</script>", "slip.png"), buyer)[0] == 400
+    assert call("POST", slip_url, upload_body(make_image(), "slip.png"), other)[0] == 404
+    assert call("POST", slip_url, upload_body(make_image(), "slip.png"))[0] == 401
+
+    # a good image: stored privately, linked to the payment, no internal path in the JSON
+    raw = make_image("PNG", (200, 140))
+    st, up = call("POST", slip_url, upload_body(raw, "slip.png"), buyer)
+    assert st == 201 and up["slip"]["simulated"] is False and "blob_path" not in json.dumps(up), up
+    st, res = call("POST", "/api/orders/" + oid + "/payment", pay, buyer)
+    assert st == 200 and res["status"] == "PENDING_VERIFICATION" and res["slip"]["file_id"] == up["slip"]["file_id"], res
+    assert "blob_path" not in json.dumps(res)
+
+    # who can look at it: owner + admin yes, other buyer / artist / anonymous no
+    for who in (buyer, admin):
+        got = call_full("GET", slip_url, token=who)
+        assert got.status == 200 and got.payload.content == raw and got.payload.content_type == "image/png" \
+            and got.payload.private is True, who
+    assert call_full("GET", slip_url, token=other).status == 404
+    assert call_full("GET", slip_url, token=artist).status == 404
+    assert call_full("GET", slip_url).status == 401
+
+    # uploading again replaces the old image (one slip image per order)
+    raw2 = make_image("JPEG", (160, 160))
+    assert call("POST", slip_url, upload_body(raw2, "slip.jpg", "image/jpeg"), buyer)[0] == 201
+    slips = [f for f in storage.get_all("files") if f.get("role") == "slip" and f.get("order_id") == oid]
+    assert len(slips) == 1, slips
+    assert call("POST", "/api/orders/" + oid + "/payment", pay, buyer)[0] == 200
+    assert call_full("GET", slip_url, token=admin).payload.content == raw2
+
+    # admin approves -> PAID; after that nothing more can be uploaded
+    st, verified = call("POST", "/api/orders/" + oid + "/payment/verify", {"approved": True, "verified_amount": total}, admin)
+    assert st == 200 and verified["status"] == "PAID", verified
+    assert call("POST", slip_url, upload_body(make_image(), "slip.png"), buyer)[0] == 409
+
+
+def test_payment_secret_word_skips_the_image_and_cod_needs_none():
+    buyer, admin, artist = login("buyer"), login("admin"), login("mika")
+    ids = [tb.make_approved_artwork(artist, admin, title="Skip Word " + str(n), price=200 + n, sale_type="LIMITED") for n in range(2)]
+    orders = []
+    for aid in ids:
+        assert call("POST", "/api/cart", {"artwork_id": aid}, buyer)[0] == 201
+        st, checked = call("POST", "/api/cart/checkout", None, buyer)
+        assert st == 201, checked
+        orders.append(checked["orders"][0] if "orders" in checked else (checked.get("order") or checked))
+    st, res = call("POST", "/api/orders/" + orders[0]["id"] + "/payment",
+                   {"order_id": orders[0]["id"], "method": "BANK_TRANSFER", "submitted_amount": orders[0]["total"], "slip": "SLIP"}, buyer)
+    assert st == 200 and res["slip"] == {"text": "slip", "simulated": True}, res
+    assert call_full("GET", "/api/orders/" + orders[0]["id"] + "/payment/slip", token=admin).status == 404, "คำลับไม่มีรูป"
+    st, res = call("POST", "/api/orders/" + orders[1]["id"] + "/payment",
+                   {"order_id": orders[1]["id"], "method": "COD", "submitted_amount": orders[1]["total"]}, buyer)
+    assert st == 200 and res["slip"] is None, res
+
+
+>>>>>>> 4bb6b93 (Block emoji in email, simulate slip by typing 'slip', fix payment/commission/admin forms)
 def test_part2_commission_lifecycle_and_access_control():
     artist = login("mika")
     buyer = login("buyer")

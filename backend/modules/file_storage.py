@@ -20,7 +20,7 @@ from backend.modules import uploads
 from backend.modules.errors import StorageError
 
 UNAVAILABLE_MESSAGE = "ระบบเก็บไฟล์ยังไม่พร้อมใช้งาน กรุณาลองใหม่ภายหลัง"
-ROLE_PREFIX = {"original": "original", "preview": "preview", "delivery": "delivery"}
+ROLE_PREFIX = {"original": "original", "preview": "preview", "delivery": "delivery", "slip": "slip"}   # slip = รูปสลิปโอนเงินของออเดอร์ (private: เจ้าของออเดอร์/admin เท่านั้น)
 
 
 def _unavailable(detail):

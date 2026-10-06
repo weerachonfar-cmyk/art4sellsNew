@@ -80,3 +80,5 @@ body:has(.a4s-loading) .a4s-busy{display:none}
 
 .thumb-sm{width:56px;height:56px;object-fit:cover;border-radius:8px;display:block}
 .form input[type=file]{width:100%;padding:12px;background:#fff;border-radius:12px;border:1px solid #e3e3ea;font:inherit}
+
+.slipPreview{display:block;max-width:220px;max-height:220px;border:1px solid var(--line);border-radius:10px;margin:8px 0;object-fit:contain;background:#fff}.slipPreview[hidden]{display:none}.slipThumb{width:72px;height:96px;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line);display:block}

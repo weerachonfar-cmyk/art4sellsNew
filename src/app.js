@@ -47,6 +47,7 @@
    else if(on("data-commission-pay")){if(blocked())return;r=await api().commissions.submitPayment(el.dataset.commissionPay);U.toast(r.ok?"Commission payment submitted":firstError(r));if(r.ok)await rerender()}
    else if(on("data-commission-action")){if(blocked())return;r=await api().commissions.action(el.dataset.commissionAction,el.dataset.action);U.toast(r.ok?"Commission updated":firstError(r));if(r.ok)await rerender()}
    else if(on("data-commission-verify")){r=await api().commissions.verifyPayment(el.dataset.commissionVerify);U.toast(r.ok?"Commission payment verified":firstError(r));if(r.ok)await rerender()}
+   else if(on("data-pay-reject")){if(!confirm("Reject this payment?"))return;r=await api().payments.verify(el.dataset.payReject,{approved:false,reason:"Slip rejected by admin"});U.toast(r.ok?"Payment rejected":firstError(r));if(r.ok)await rerender()}
    else if(on("data-pay-verify")){r=await api().payments.verify(el.dataset.payVerify,{approved:true});U.toast(r.ok?"Payment verified":firstError(r));if(r.ok)await rerender()}
    else if(on("data-black-remove")){r=await api().moderation.blacklistRemove(el.dataset.blackRemove);U.toast(r.ok?"Removed from blacklist":firstError(r));if(r.ok)await rerender()}
    else if(on("data-ip-remove")){r=await api().moderation.ipRemove(el.dataset.ipRemove);U.toast(r.ok?"IP block removed":firstError(r));if(r.ok)await rerender()}
@@ -71,6 +72,15 @@
   }catch(err){U.toast(err&&err.message?err.message:"Something went wrong")}
  });
 
+ /* slip image preview (data: URL - the CSP does not allow blob:) */
+ document.addEventListener("change",function(e){
+  var t=e.target;if(!t||t.name!=="slip_file")return;
+  var img=t.form&&t.form.querySelector(".slipPreview"),file=t.files&&t.files[0],perr=t.form&&t.form.querySelector(".err");
+  if(!img)return;img.hidden=true;img.removeAttribute("src");if(perr)perr.textContent="";
+  if(!file)return;
+  var bad=api().artworks&&api().artworks.checkFile?api().artworks.checkFile(file):"";
+  if(bad){if(perr)perr.textContent=bad;t.value="";return}
+  var fr=new FileReader();fr.onload=function(){img.src=String(fr.result);img.hidden=false};fr.readAsDataURL(file)});
  document.addEventListener("submit",async function(e){
   var f=e.target,fid=f.getAttribute("id"),r;
   if(f.dataset&&f.dataset.busy==="1"){e.preventDefault();return}   /* ignore a second submit while the first is still running (double click) */
@@ -90,7 +100,16 @@
     r=await api().reviews.create({artworkId:f.dataset.art,artworkRating:Number(v.artworkRating),artistRating:Number(v.artistRating),rating:Number(v.artworkRating),text:v.text});
     if(!r.ok){$("revErr").textContent=firstError(r);return}
     U.toast("Review posted");await rerender()}
+<<<<<<< HEAD
    else if(f.classList&&f.classList.contains("payForm")){e.preventDefault();var pv=Object.fromEntries(new FormData(f));r=await api().payments.submit(f.dataset.order,{order_id:f.dataset.order,method:pv.method,submitted_amount:Number(pv.amount),slip:(pv.slip||"").trim()});if(!r.ok){$("payErr-"+f.dataset.order).textContent=firstError(r);return}U.toast("Payment submitted for verification");await rerender()}
+=======
+   else if(f.classList&&f.classList.contains("payForm")){e.preventDefault();var pv=Object.fromEntries(new FormData(f)),perr=$("payErr-"+f.dataset.order),pfile=f.elements.slip_file&&f.elements.slip_file.files&&f.elements.slip_file.files[0],slipVal=(pv.slip||"").trim();
+    perr.textContent="";
+    if(pv.method!=="COD"&&pfile){   /* an image was chosen: upload it first, then submit the payment (the server links the newest slip image) */
+     var up=await api().payments.uploadSlip(f.dataset.order,pfile);if(!up.ok){perr.textContent=firstError(up);return}slipVal=""}
+    r=await api().payments.submit(f.dataset.order,{order_id:f.dataset.order,method:pv.method,submitted_amount:Number(pv.amount),slip:slipVal});
+    if(!r.ok){perr.textContent=firstError(r);return}U.toast("Payment submitted for verification");await rerender()}
+>>>>>>> 4bb6b93 (Block emoji in email, simulate slip by typing 'slip', fix payment/commission/admin forms)
    else if(fid==="commissionListingForm"){e.preventDefault();var cv=Object.fromEntries(new FormData(f)),payload={title:cv.title,description:cv.description,conditions:cv.conditions,price:Number(cv.price),days:Number(cv.days),revisions:Number(cv.revisions),samples:[]};r=await api().commissions.createListing(payload);if(!r.ok){$("commissionListingErr").textContent=firstError(r);return}U.toast("Commission listing created");await rerender()}
    else if(fid==="promotionForm"){e.preventDefault();var pv2=Object.fromEntries(new FormData(f)),prom={title:pv2.title,type:pv2.type,value:Number(pv2.value),start_at:new Date(pv2.start_at).toISOString(),end_at:new Date(pv2.end_at).toISOString(),artwork_id:pv2.artwork_id};if(!pv2.artwork_id)delete prom.artwork_id;r=await api().promotions.create(prom);if(!r.ok){$("promotionErr").textContent=firstError(r);return}U.toast("Promotion created");await rerender()}
    else if(fid==="blacklistForm"){e.preventDefault();var bv=Object.fromEntries(new FormData(f));r=await api().moderation.blacklistAdd({user_id:(bv.user_id||"").trim(),reason:(bv.reason||"").trim()});

@@ -359,6 +359,12 @@ def h_payment_get(req):
 def h_payment_submit(req):
     return 200, payment.submit_payment(req.body, req.actor)
 
+def h_payment_slip_upload(req):
+    return 201, payment.upload_slip(req.params["order_id"], req.body, req.actor)
+
+def h_payment_slip_get(req):
+    return 200, payment.get_slip(req.params["order_id"], req.actor)
+
 def h_payment_verify(req):
     return 200, payment.verify_payment(req.params["order_id"], req.body, req.actor)
 
@@ -418,7 +424,7 @@ def h_ip_add(req):
 def h_ip_remove(req):
     return 200, moderation.remove_ip(req.params["ip"], req.actor)
 
-UPLOAD_HANDLERS = {h_artwork_file_upload}              # handler ที่รับ body ใหญ่ (ไฟล์ภาพส่งเป็น base64 ใน JSON)
+UPLOAD_HANDLERS = {h_artwork_file_upload, h_payment_slip_upload}              # handler ที่รับ body ใหญ่ (ไฟล์ภาพส่งเป็น base64 ใน JSON)
 
 # ตารางเส้นทาง: (method, path, handler)  ส่วนที่ขึ้นต้นด้วย ":" คือตัวแปรใน path
 ROUTES = [
@@ -499,6 +505,8 @@ ROUTES = [
     ("GET", "/api/orders/:order_id/payment", h_payment_get),
     ("POST", "/api/orders/:order_id/payment", h_payment_submit),
     ("POST", "/api/orders/:order_id/payment/verify", h_payment_verify),
+    ("POST", "/api/orders/:order_id/payment/slip", h_payment_slip_upload),
+    ("GET", "/api/orders/:order_id/payment/slip", h_payment_slip_get),
     ("GET", "/api/promotions", h_promotions_list),
     ("POST", "/api/promotions", h_promotions_create),
     ("GET", "/api/artworks/:artwork_id/price-history", h_price_history),

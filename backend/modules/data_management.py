@@ -12,7 +12,7 @@ import hashlib
 import json
 
 from backend import config, seed
-from backend.modules import artwork_files, logger, permissions, security, storage, validation
+from backend.modules import artwork_files, logger, payment, permissions, security, storage, validation
 from backend.modules.errors import AppError, validation_error
 from backend.modules.utils import is_expired, minutes_from_now_iso, now_iso
 
@@ -189,6 +189,7 @@ def clear_data(data, actor):
         # PART 2 internal collections: keep admin scope UX stable while preventing orphan records.
         if "orders" in plan and plan["orders"]:
             order_ids = plan["orders"]
+            payment.delete_slips_of_orders(order_ids)
             storage.save_json("payments", [r for r in storage.get_all("payments") if r.get("order_id") not in order_ids])
         if "artworks" in plan and plan["artworks"]:
             artwork_ids = plan["artworks"]

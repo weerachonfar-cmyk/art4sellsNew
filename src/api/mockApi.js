@@ -21,6 +21,8 @@ A4S.mockApi=(function(){
   get:async function(id){var u=AuthService.getUser(id);return u&&u.role==="ARTIST"?{ok:true,artist:artist(u)}:{ok:false,status:404,error:"Artist not found"}}
  };
  A.artworks={
+  checkFile:function(){return"Image upload needs the real backend (not available in mock mode)"},
+  uploadFile:async function(){return{ok:false,error:"Image upload needs the real backend (not available in mock mode)",errors:{}}},
   search:async function(o){var r=ArtworkService.searchArtworks(o);return Object.assign({ok:true},r,{items:r.items.map(vm)})},
   get:async function(id){var w=ArtworkService.getArtwork(id);return w?{ok:true,artwork:vm(w)}:{ok:false,status:404,error:"Artwork not found"}},
   mine:async function(){var u=me();return{ok:true,items:Data.find("artworks",function(w){return u&&w.artist===u.id}).map(vm)}},

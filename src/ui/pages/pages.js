@@ -84,19 +84,22 @@ manage:async function(){   /* artist's own CRUD panel: create / edit / submit fo
  var list=need(await api().artworks.mine()).items,cats=need(await api().categories.list()).items;
  A4S.myWorks=list;
  var sales=await api().orders.list("sales"),salesItems=sales.ok?sales.items:[],revenue=salesItems.reduce(function(n,o){return n+Number(o.sales_total||0)},0);
- var rows=list.map(function(w){var open=w.status==="DRAFT"||w.status==="REJECTED";
-  return '<tr><td>'+U.esc(w.title)+(w.rejectReason?'<div class="mute small">Rejected: '+U.esc(w.rejectReason)+'</div>':'')+'</td><td>'+U.money(w.price)+'</td><td><span class="pill '+U.cls(w.status)+'">'+U.esc(w.status)+'</span></td><td>'
+ /* real preview when the backend has one; otherwise the generated placeholder (see the image error handler in app.js) */
+  var thumb=function(w){var ph=U.art(w.seed);return A4S.mode==="api"?'<img class="thumb-sm" alt="" src="'+A4S.config.apiBase+'/artworks/'+encodeURIComponent(w.id)+'/preview" data-fallback="'+ph+'">':'<img class="thumb-sm" alt="" src="'+ph+'">'};
+  var rows=list.map(function(w){var open=w.status==="DRAFT"||w.status==="REJECTED";
+  return '<tr><td>'+thumb(w)+'</td><td>'+U.esc(w.title)+(w.rejectReason?'<div class="mute small">Rejected: '+U.esc(w.rejectReason)+'</div>':'')+'</td><td>'+U.money(w.price)+'</td><td><span class="pill '+U.cls(w.status)+'">'+U.esc(w.status)+'</span></td><td>'
   +(open?'<button class="btn ghost sm" data-art-edit="'+U.esc(w.id)+'">Edit</button> <button class="btn sm" data-art-submit="'+U.esc(w.id)+'">Submit</button> ':'')
   +'<button class="btn ghost sm" data-art-del="'+U.esc(w.id)+'">Delete</button></td></tr>'}).join("");
  var count=function(st){return list.filter(function(w){return w.status===st}).length};
   var stats='<section><h2>Dashboard</h2><div class="stats">'+[["Total artwork",list.length],["Pending approval",count("PENDING_APPROVAL")],["Approved",count("APPROVED")],["Sales revenue",U.money(revenue)]]
    .map(function(x){return '<div class="stat"><span class="mute">'+x[0]+'</span><b>'+(typeof x[1]==="number"?x[1].toLocaleString():x[1])+'</b></div>'}).join("")+'</div></section>';
-  $("#manage").innerHTML=stats+'<section><h2>My Artwork</h2><div class="tw"><table><tr><th>Title</th><th>Price</th><th>Status</th><th></th></tr>'+(rows||'<tr><td colspan="4" class="mute">No artwork yet. Create your first piece below.</td></tr>')+'</table></div></section>'
+  $("#manage").innerHTML=stats+'<section><h2>My Artwork</h2><div class="tw"><table><tr><th></th><th>Title</th><th>Price</th><th>Status</th><th></th></tr>'+(rows||'<tr><td colspan="5" class="mute">No artwork yet. Create your first piece below.</td></tr>')+'</table></div></section>'
  +'<section><h2 id="formTitle">New artwork</h2><form class="form" id="artForm" style="margin:0" novalidate><input type="hidden" name="artId">'
  +'<input name="title" placeholder="Title"><input name="price" type="number" step="0.01" min="0" placeholder="Price (THB)">'
  +'<select name="category">'+opts(cats.map(function(c){return [c.id,c.name]}))+'</select><select name="sale_type">'+opts([["UNLIMITED","UNLIMITED"],["LIMITED","LIMITED"]])+'</select>'
  +'<input name="tags" placeholder="tags, comma separated"><textarea name="description" rows="3" placeholder="Description"></textarea>'
- +'<p class="err" id="artErr"></p><button class="btn">Save as draft</button></form></section>'
+ +'<label class="mute small" for="artFile">Artwork image: PNG, JPG or WebP, up to 3 MB (leave empty to keep the current one)</label><input type="file" id="artFile" name="file" accept="image/png,image/jpeg,image/webp">'
+  +'<p class="err" id="artErr"></p><button class="btn">Save as draft</button></form></section>'
  +'<section><h2>Commission Listing</h2><form class="form" id="commissionListingForm" style="margin:0" novalidate><input name="title" placeholder="Commission title"><textarea name="description" rows="3" placeholder="Description"></textarea><textarea name="conditions" rows="2" placeholder="Conditions"></textarea><input name="price" type="number" min="0" step="0.01" placeholder="Starting price"><input name="days" type="number" min="1" max="365" value="7" placeholder="Days"><input name="revisions" type="number" min="0" max="20" value="1" placeholder="Revisions"><p class="err" id="commissionListingErr"></p><button class="btn">Create commission listing</button></form></section>'
  +'<section><h2>Promotion</h2><form class="form" id="promotionForm" style="margin:0" novalidate><input name="title" placeholder="Promotion title"><select name="type"><option value="PERCENTAGE">Percentage</option><option value="FIXED_AMOUNT">Fixed amount</option></select><input name="value" type="number" min="0" step="0.01" placeholder="Discount value"><input name="start_at" type="datetime-local"><input name="end_at" type="datetime-local"><input name="artwork_id" placeholder="Artwork ID"><p class="err" id="promotionErr"></p><button class="btn">Create promotion</button></form></section>';
 },

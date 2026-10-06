@@ -57,6 +57,21 @@ A4S.remoteApi=(function(){
   create:async function(d){var r=await H.post("/artworks",body(d));return r.ok?{ok:true,artwork:toArtwork(r.data)}:r},
   update:async function(id,d){var r=await H.put("/artworks/"+encodeURIComponent(id),body(d));return r.ok?{ok:true,artwork:toArtwork(r.data)}:r},
   remove:async function(id){var r=await H.del("/artworks/"+encodeURIComponent(id));return r.ok?{ok:true}:r},
+  /* image upload: the backend takes JSON {filename, content_type, data_base64}. 3 MB cap because Vercel limits a request to ~4.5 MB and base64 adds a third. */
+  checkFile:function(file){
+   var n=String(file&&file.name||""),ext=n.indexOf(".")>=0?n.split(".").pop().toLowerCase():"";
+   if(["png","jpg","jpeg","webp"].indexOf(ext)<0)return"Only PNG, JPG or WebP images are allowed";
+   if(!file.size)return"The selected file is empty";
+   if(file.size>3*1024*1024)return"Image must be 3 MB or smaller";
+   return""},
+  uploadFile:async function(id,file){
+   var bad=A.artworks.checkFile(file);if(bad)return{ok:false,error:bad,errors:{}};
+   var ext=String(file.name).split(".").pop().toLowerCase(),mime=ext==="png"?"image/png":ext==="webp"?"image/webp":"image/jpeg",b64;
+   try{b64=await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){var s=String(fr.result);res(s.slice(s.indexOf(",")+1))};fr.onerror=function(){rej(new Error("read"))};fr.readAsDataURL(file)})}
+   catch(e){return{ok:false,error:"Could not read the selected file",errors:{}}}
+   /* the name sent is generic on purpose: the server never uses it for storage and rejects names containing ".." or slashes */
+   var r=await H.request("POST","/artworks/"+encodeURIComponent(id)+"/file",{body:{filename:"artwork."+ext,content_type:mime,data_base64:b64},timeout:30000});
+   return r.ok?{ok:true,files:r.data.files}:r},
   submit:function(id){return A.artworks._act(id,"submit")},
   approve:function(id){return A.artworks._act(id,"approve")},
   reject:function(id){return A.artworks._act(id,"reject")},

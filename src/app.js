@@ -24,6 +24,9 @@
   return render();
  }).catch(showError);
 
+ /* CSP blocks inline onerror handlers, so a thumbnail that fails to load (no uploaded image yet) swaps to its data-fallback placeholder here */
+ document.addEventListener("error",function(e){var t=e.target;if(t&&t.tagName==="IMG"&&t.dataset&&t.dataset.fallback){var fb=t.dataset.fallback;delete t.dataset.fallback;t.src=fb}},true);
+
  document.addEventListener("click",async function(e){
   var t=e.target,el,on=function(a){el=t.closest("["+a+"]");return el},r;
   try{
@@ -71,10 +74,16 @@
  document.addEventListener("submit",async function(e){
   var f=e.target,fid=f.getAttribute("id"),r;
   try{
-   if(fid==="artForm"){e.preventDefault();var d=Object.fromEntries(new FormData(f)),id=d.artId;delete d.artId;
+   if(fid==="artForm"){e.preventDefault();var d=Object.fromEntries(new FormData(f)),id=d.artId,file=d.file&&d.file.size?d.file:null;delete d.artId;delete d.file;
+    var badFile=file?api().artworks.checkFile(file):"";   /* check the image first so a bad file never leaves a half-created draft */
+    if(badFile){$("artErr").textContent=badFile;return}
     r=id?await api().artworks.update(id,d):await api().artworks.create(d);
     if(!r.ok){$("artErr").textContent=firstError(r);return}
-    U.toast(id?"Artwork updated":"Draft saved");await rerender()}
+    if(file){var up=await api().artworks.uploadFile(id||r.artwork.id,file);
+     if(!up.ok){await rerender();var ae=$("artErr");   /* the draft exists now: redraw the list, keep the reason visible */
+      if(ae)ae.textContent=(id?"Artwork updated":"Saved as a draft")+", but the image was not uploaded: "+firstError(up);
+      U.toast("Image upload failed");return}}
+    U.toast(file?(id?"Artwork and image saved":"Draft and image saved"):(id?"Artwork updated":"Draft saved"));await rerender()}
    else if(fid==="reviewForm"){e.preventDefault();var v=Object.fromEntries(new FormData(f));
     r=await api().reviews.create({artworkId:f.dataset.art,artworkRating:Number(v.artworkRating),artistRating:Number(v.artistRating),rating:Number(v.artworkRating),text:v.text});
     if(!r.ok){$("revErr").textContent=firstError(r);return}

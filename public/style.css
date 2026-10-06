@@ -77,3 +77,6 @@ textarea{font:inherit;padding:11px 14px;border:1px solid var(--line);border-radi
 .a4s-busy{position:fixed;right:18px;bottom:18px;z-index:60;width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--acc);border-radius:50%;background:var(--bg);box-shadow:0 2px 10px rgba(0,0,0,.15);animation:a4s-spin .8s linear infinite;pointer-events:none}
 body:has(.a4s-loading) .a4s-busy{display:none}
 @media (prefers-reduced-motion:reduce){.a4s-spinner,.a4s-busy{animation-duration:2.4s}}
+
+.thumb-sm{width:56px;height:56px;object-fit:cover;border-radius:8px;display:block}
+.form input[type=file]{width:100%;padding:12px;background:#fff;border-radius:12px;border:1px solid #e3e3ea;font:inherit}

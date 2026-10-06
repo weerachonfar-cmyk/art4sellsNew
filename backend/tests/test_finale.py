@@ -1441,7 +1441,7 @@ def test_part2_payment_review_and_delivery_foundation():
     order_id = checked["order"]["id"] if "order" in checked else checked["id"]
     st, payment = call("POST", "/api/orders/" + order_id + "/payment", {
         "order_id": order_id, "method": "BANK_TRANSFER", "submitted_amount": 555,
-        "slip": {"filename": "slip.png", "content_type": "image/png", "size": 1000}
+        "slip": "Slip"
     }, buyer)
     assert st == 200 and payment["status"] == "PENDING_VERIFICATION", payment
     st, verified = call("POST", "/api/orders/" + order_id + "/payment/verify", {"approved": True, "verified_amount": 555}, admin)
@@ -1454,6 +1454,43 @@ def test_part2_payment_review_and_delivery_foundation():
     assert st == 201, review
     st, download = call("GET", "/api/orders/" + order_id + "/artworks/" + artwork_id + "/download", None, buyer)
     assert st in (200, 404), download  # seeded file availability is provider-dependent; authorization is the important foundation here
+
+
+def test_email_rejects_emoji_and_non_ascii():
+    for bad in ("emoji\U0001F600@x.io", "\U0001F600@x.io", "user@\U0001F600.io", "ผู้ใช้@x.io", "a b@x.io", "a@b", "a@@b.io"):
+        st, res = call("POST", "/api/register", {"name": "Emo Ji", "email": bad, "password": "Passw0rd1!",
+                                                  "confirm_password": "Passw0rd1!", "role": "USER"})
+        assert st == 400 and "email" in res.get("error", {}).get("fields", {}), (bad, st, res)
+        st, res = call("POST", "/api/login", {"email": bad, "password": "Passw0rd1!"})
+        assert st == 400, (bad, st, res)
+    st, res = call("POST", "/api/register", {"name": "Plain Mail", "email": "plain.mail+t@x.io", "password": "Passw0rd1!",
+                                              "confirm_password": "Passw0rd1!", "role": "USER"})
+    assert st == 201, res
+
+
+def test_payment_slip_is_a_typed_word():
+    buyer = login("buyer")
+    artist = login("mika")
+    admin = login("admin")
+    ids = []
+    for n in range(2):
+        aid = tb.make_approved_artwork(artist, admin, title="Slip Word " + str(n), price=100 + n, sale_type="LIMITED")
+        assert call("POST", "/api/cart", {"artwork_id": aid}, buyer)[0] == 201
+    st, checked = call("POST", "/api/cart/checkout", None, buyer)
+    assert st == 201, checked
+    orders = checked["orders"] if "orders" in checked else [checked["order"] if "order" in checked else checked]
+    oid = orders[0]["id"]
+    total = orders[0]["total"]
+    base = {"order_id": oid, "method": "QR_PAYMENT", "submitted_amount": total}
+    for bad in (None, "", "   ", "slip.png", "slips", "สลิป", {"filename": "slip.png"}):
+        st, res = call("POST", "/api/orders/" + oid + "/payment", dict(base, slip=bad), buyer)
+        assert st == 400 and "slip" in res.get("error", {}).get("fields", {}), (bad, st, res)
+    st, res = call("POST", "/api/orders/" + oid + "/payment", dict(base, slip=" Slip "), buyer)
+    assert st == 200 and res["status"] == "PENDING_VERIFICATION" and res["slip"]["simulated"] is True, res
+    st, got = call("GET", "/api/orders/" + oid, None, buyer)
+    assert st == 200 and got["status"] == "PAYMENT_SUBMITTED", got
+    st, res = call("POST", "/api/orders/" + oid + "/payment/verify", {"approved": True, "verified_amount": total}, admin)
+    assert st == 200 and res["status"] == "PAID", res
 
 
 def test_part2_commission_lifecycle_and_access_control():

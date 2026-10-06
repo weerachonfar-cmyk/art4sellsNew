@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 
 from backend import config
 
-EMAIL_PATTERN = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")           # ใช้กับ fullmatch เสมอ (ไม่ใช้ ^ $ เพราะ $ ยอมให้มี \n ต่อท้าย)
+EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+\-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z0-9\-]{2,}", re.ASCII)   # อีเมลต้องเป็น ASCII เท่านั้น: ห้ามอีโมจิ/อักขระพิเศษอื่น           # ใช้กับ fullmatch เสมอ (ไม่ใช้ ^ $ เพราะ $ ยอมให้มี \n ต่อท้าย)
 ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")           # id ที่ระบบสร้างเอง: ตัวอักษร/ตัวเลข/_/- เท่านั้น
 BIDI_CONTROLS = set("\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069")   # ตัวควบคุมทิศทางข้อความ (ใช้หลอกตาได้)
 MULTILINE_OK = {"\n", "\r", "\t"}
@@ -261,6 +261,8 @@ def validate_email(email):
     text = (email or "").strip()
     if not text:
         return "กรุณากรอกอีเมล"
+    if not text.isascii():
+        return "อีเมลใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ ตัวเลข และสัญลักษณ์ . _ % + - เท่านั้น (ห้ามใช้อีโมจิ)"
     if len(text) > 254 or not EMAIL_PATTERN.fullmatch(text):
         return "รูปแบบอีเมลไม่ถูกต้อง"
     return None

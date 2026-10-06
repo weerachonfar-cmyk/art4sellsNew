@@ -73,6 +73,8 @@
 
  document.addEventListener("submit",async function(e){
   var f=e.target,fid=f.getAttribute("id"),r;
+  if(f.dataset&&f.dataset.busy==="1"){e.preventDefault();return}   /* ignore a second submit while the first is still running (double click) */
+  if(f.dataset)f.dataset.busy="1";
   try{
    if(fid==="artForm"){e.preventDefault();var d=Object.fromEntries(new FormData(f)),id=d.artId,file=d.file&&d.file.size?d.file:null;delete d.artId;delete d.file;
     var badFile=file?api().artworks.checkFile(file):"";   /* check the image first so a bad file never leaves a half-created draft */
@@ -88,9 +90,16 @@
     r=await api().reviews.create({artworkId:f.dataset.art,artworkRating:Number(v.artworkRating),artistRating:Number(v.artistRating),rating:Number(v.artworkRating),text:v.text});
     if(!r.ok){$("revErr").textContent=firstError(r);return}
     U.toast("Review posted");await rerender()}
-   else if(fid==="payForm"){e.preventDefault();var pv=Object.fromEntries(new FormData(f));r=await api().payments.submit(f.dataset.order,{order_id:f.dataset.order,method:pv.method,submitted_amount:Number(pv.amount),slip:pv.slip_name?{filename:pv.slip_name}:null});if(!r.ok){$("payErr-"+f.dataset.order).textContent=firstError(r);return}U.toast("Payment submitted for verification");await rerender()}
+   else if(f.classList&&f.classList.contains("payForm")){e.preventDefault();var pv=Object.fromEntries(new FormData(f));r=await api().payments.submit(f.dataset.order,{order_id:f.dataset.order,method:pv.method,submitted_amount:Number(pv.amount),slip:(pv.slip||"").trim()});if(!r.ok){$("payErr-"+f.dataset.order).textContent=firstError(r);return}U.toast("Payment submitted for verification");await rerender()}
    else if(fid==="commissionListingForm"){e.preventDefault();var cv=Object.fromEntries(new FormData(f)),payload={title:cv.title,description:cv.description,conditions:cv.conditions,price:Number(cv.price),days:Number(cv.days),revisions:Number(cv.revisions),samples:[]};r=await api().commissions.createListing(payload);if(!r.ok){$("commissionListingErr").textContent=firstError(r);return}U.toast("Commission listing created");await rerender()}
    else if(fid==="promotionForm"){e.preventDefault();var pv2=Object.fromEntries(new FormData(f)),prom={title:pv2.title,type:pv2.type,value:Number(pv2.value),start_at:new Date(pv2.start_at).toISOString(),end_at:new Date(pv2.end_at).toISOString(),artwork_id:pv2.artwork_id};if(!pv2.artwork_id)delete prom.artwork_id;r=await api().promotions.create(prom);if(!r.ok){$("promotionErr").textContent=firstError(r);return}U.toast("Promotion created");await rerender()}
+   else if(fid==="blacklistForm"){e.preventDefault();var bv=Object.fromEntries(new FormData(f));r=await api().moderation.blacklistAdd({user_id:(bv.user_id||"").trim(),reason:(bv.reason||"").trim()});
+    if(!r.ok){$("blackErr").textContent=firstError(r);return}U.toast("User blacklisted");await rerender()}
+   else if(fid==="ipBlockForm"){e.preventDefault();var iv=Object.fromEntries(new FormData(f));r=await api().moderation.ipAdd({ip:(iv.ip||"").trim(),reason:(iv.reason||"").trim()});
+    if(!r.ok){$("ipErr").textContent=firstError(r);return}U.toast("IP blocked");await rerender()}
+   else if(fid==="commissionForm"){e.preventDefault();var mv=Object.fromEntries(new FormData(f));
+    r=await api().commissions.create({listing_id:f.dataset.listing,payment_method:"QR_PAYMENT",brief:{type:mv.type,details:mv.details,references:mv.references,size:mv.size,style:mv.style,background:mv.background,character_count:Number(mv.character_count)||1,additional_requests:mv.additional_requests}});
+    if(!r.ok){$("commissionErr").textContent=firstError(r);return}U.toast("Commission request created");location.href="orders.html"}
    else if(fid==="pwForm"){e.preventDefault();r=await api().password.change(Object.fromEntries(new FormData(f)));
     if(!r.ok){$("pwErr").textContent=firstError(r);return}
     U.toast("Password changed");await rerender()}
@@ -106,5 +115,6 @@
     if(!r.ok){$("dmErr").textContent=firstError(r);if(r.code==="CONFIRMATION_REQUIRED"){A4S.dm=null}return}
     A4S.dm=null;U.toast(dm.kind==="clear"?"Data cleared":"Demo data restored");await reload();await rerender()}
   }catch(err){U.toast(err&&err.message?err.message:"Something went wrong")}
+  finally{if(f&&f.dataset)delete f.dataset.busy}
  });
 })();

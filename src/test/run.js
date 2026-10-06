@@ -13,7 +13,7 @@ const t=(n,f)=>{AppStorage.clear();AppState.set("currentUser",null);try{f();pass
 const eq=(a,b)=>{if(a!==b)throw new Error(JSON.stringify(a)+" !== "+JSON.stringify(b))},ok=(c,m)=>{if(!c)throw new Error(m||"assertion failed")};
 const as=e=>{const u=Data.find("users",x=>x.email===e+"@art4sells.test")[0];return{id:u.id,name:u.name,email:u.email,role:u.role}};   /* fixture lookup only: mock login no longer exists */
 const search=o=>ArtworkService.searchArtworks(o);
-t("Validation",()=>{const r=Validation.validateArtwork({title:"",price:0,cat:"x",type:"?"});ok(!r.valid&&r.errors.title&&r.errors.price);ok(Validation.validateArtwork({title:"A",price:10,cat:"3D Art",type:"LIMITED"}).valid);ok(Validation.validateEmail("bad"))});
+t("Validation",()=>{const r=Validation.validateArtwork({title:"",price:0,cat:"x",type:"?"});ok(!r.valid&&r.errors.title&&r.errors.price);ok(Validation.validateArtwork({title:"A",price:10,cat:"3D Art",type:"LIMITED"}).valid);ok(Validation.validateEmail("bad"));ok(Validation.validateEmail("a\u{1F600}@x.io"));ok(Validation.validateEmail("ผู้ใช้@x.io"));eq(Validation.validateEmail("buyer@art4sells.test"),"")});
 t("Auth (mock is disabled: no password, no login)",()=>{ok(!AuthService.register({name:"Z",email:"z@x.io",password:"Abcdef12!",confirm:"Abcdef12!",role:"ADMIN"}).ok,"no self-admin");ok(!AuthService.register({name:"Zed",email:"zed@x.io",password:"Abcdef12!",confirm:"Abcdef12!",role:"ARTIST"}).ok,"mock cannot register");eq(AuthService.getCurrentUser(),null);ok(!AuthService.login({email:"no@x.io",password:"Abcdef12!"}).ok);AuthService.logout();eq(AuthService.getCurrentUser(),null)});
 t("RBAC",()=>{ok(!RBAC.hasPermission(as("mika"),"artwork.approve"));ok(RBAC.hasPermission(as("admin"),"audit.view"));let c;try{RBAC.requirePermission(as("buyer"),"ip.block")}catch(e){c=e.code}eq(c,"FORBIDDEN")});
 t("Artwork CRUD + approval",()=>{const m=as("mika"),a=as("admin"),d={title:"Test Piece",price:300,cat:"Illustration",type:"UNLIMITED"};
@@ -155,3 +155,8 @@ ta("Source has no eval / new Function / document.write and keeps localStorage in
   if(rel!=="src/core/storage.js")ok(!/localStorage/.test(t),"localStorage outside core/storage.js: "+rel)})});
 (async()=>{for(const[n,f]of later){AppStorage.clear();AppState.set("currentUser",null);try{await f();pass++;console.log("ok   "+n)}catch(e){bad++;console.log("FAIL "+n+": "+e.message)}}
  console.log(pass+" passed, "+bad+" failed");process.exit(bad?1:0)})();
+
+t("Every form the pages render has a submit handler (payForm / blacklist / IP block / commission request)",()=>{const app=fs.readFileSync(path.join(src,"app.js"),"utf8"),pages=fs.readFileSync(path.join(src,"ui/pages/pages.js"),"utf8");
+ ok(/classList\.contains\("payForm"\)/.test(app)&&/class="form mini payForm"/.test(pages),"payForm");
+ ["blacklistForm","ipBlockForm","commissionForm"].forEach(id=>ok(app.includes('fid==="'+id+'"')&&pages.includes('id="'+id+'"'),id));
+ ok(/data-busy|dataset\.busy/.test(app),"double-submit guard")});

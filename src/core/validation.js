@@ -2,7 +2,7 @@
 var Validation=(()=>{
  const V={},pack=m=>{const e={};Object.keys(m).forEach(k=>{if(m[k])e[k]=m[k]});return{valid:!Object.keys(e).length,errors:e}};
  V.validateRequired=(v,l)=>String(v==null?"":v).trim()?"":(l||"This field")+" is required";
- V.validateEmail=v=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v||"")?"":"Enter a valid email address";
+ V.validateEmail=v=>{v=typeof v==="string"?v.trim():"";if(/[^\x00-\x7F]/.test(v))return"Email may use only English letters, numbers and . _ % + - (no emoji)";return /^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z0-9-]{2,}$/.test(v)?"":"Enter a valid email address"};
  /* Password policy (UX only - the Python backend is the real check): 8-128 chars + a-z, A-Z, 0-9, special. Never trim/lower/alter the value. */
  V.PASSWORD_RULES=[
   {text:"At least 8 characters",error:"Password must be at least 8 characters",ok:p=>p.length>=8},

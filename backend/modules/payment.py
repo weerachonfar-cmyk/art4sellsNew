@@ -38,6 +38,17 @@ def get_payment(order_id, actor):
     payment = _get(order_id) or ensure_for_order(storage.get_record("orders", order_id))
     return dict(payment, order_status=record["status"])
 
+def _clean_slip(slip, method):
+    """จำลองการแนบสลิป: ผู้ซื้อพิมพ์คำว่า slip (ตัวพิมพ์เล็ก/ใหญ่ก็ได้) แทนการอัปโหลดไฟล์
+    QR_PAYMENT / BANK_TRANSFER ต้องพิมพ์ให้ถูก  COD ไม่ต้องมีสลิป"""
+    text = slip.strip() if isinstance(slip, str) else ""
+    if method == "COD":
+        return None
+    if text.lower() != "slip":
+        raise validation_error({"slip": 'กรุณาพิมพ์คำว่า "slip" เพื่อจำลองการแนบสลิป'})
+    return {"text": "slip", "simulated": True}
+
+
 def submit_payment(data, actor):
     body = validation.pick_fields(data, ("order_id", "method", "submitted_amount", "slip"))
     problem = validation.validate_id(body.get("order_id"), "order_id")
@@ -58,14 +69,7 @@ def submit_payment(data, actor):
         payment = _get(o["id"]) or ensure_for_order(o)
         if amount < 0:
             raise validation_error({"submitted_amount": "ยอดต้องไม่ติดลบ"})
-        slip = body.get("slip")
-        if slip is not None and not isinstance(slip, dict):
-            raise validation_error({"slip": "ข้อมูลสลิปไม่ถูกต้อง"})
-        clean_slip = None
-        if slip:
-            clean_slip = {k: slip[k] for k in ("filename", "content_type", "size", "storage_key") if k in slip}
-            if "filename" in clean_slip and (not isinstance(clean_slip["filename"], str) or len(clean_slip["filename"]) > 200):
-                raise validation_error({"slip": "ชื่อไฟล์สลิปไม่ถูกต้อง"})
+        clean_slip = _clean_slip(body.get("slip"), method)
         updated = storage.update_record("payments", payment["id"], {
             "method": method, "submitted_amount": amount, "status": "PENDING_VERIFICATION",
             "slip": clean_slip, "submitted_at": now_iso(), "updated_at": now_iso(), "rejection_reason": None,

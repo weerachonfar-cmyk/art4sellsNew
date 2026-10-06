@@ -217,7 +217,7 @@ login:function(){return A4S.pages.auth("login")},
 register:function(){return A4S.pages.auth("register")},
 admin:async function(){
  var usr=me();
- if(!usr||usr.role!=="ADMIN"){$("#app").innerHTML='<div class="wrap"><section><h2>Admins only</h2><p class="mute" style="margin-bottom:14px">Log in with an ADMIN account to open the dashboard.</p><a class="btn" href="login.html">Login</a></section></div>';return}
+ if(!usr||usr.role!=="ADMIN"){$("#app").innerHTML='<div class="wrap"><section><h2>Admins only</h2><p class="mute" style="margin-bottom:14px">Log in with an ADMIN account to open the dashboard.</p><a class="btn" href="login.html?next='+encodeURIComponent(here())+'">Login</a></section></div>';return}
  var tabs=["Dashboard","Users","Artwork Approval","Audit Logs","Data Management","Reviews","Reports","Payments","Commissions","Blacklist","IP Block"].concat(A4S.devTools?["Dev Mailbox"]:[]),pg=Math.max(1,parseInt(qs("page"),10)||1),body;
  var tab=tabs.indexOf(qs("tab"))>-1?qs("tab"):"Dashboard";   /* allowlist: text from the URL is never printed into the page */
  var pager=function(r,t){return r.totalPages>1?'<div class="pager"><a class="btn ghost" href="admin.html?tab='+encodeURIComponent(t)+'&page='+Math.max(1,r.page-1)+'">Previous</a><span>'+r.page+' / '+r.totalPages+'</span><a class="btn ghost" href="admin.html?tab='+encodeURIComponent(t)+'&page='+Math.min(r.totalPages,r.page+1)+'">Next</a></div>':''};

@@ -1,0 +1,4 @@
+# Dependencies สำหรับ Vercel Python Function (Local Development ไม่จำเป็นต้องติดตั้ง ยกเว้น Pillow ถ้าจะทดสอบอัปโหลด/ลายน้ำ)
+# ตัว backend หลักใช้เฉพาะ Python Standard Library (งานวิชา) - แพ็กเกจด้านล่างใช้เฉพาะส่วนไฟล์ภาพ
+Pillow>=10.1        # ตรวจไฟล์ภาพจริง + สร้างลายน้ำของ Preview (ถ้าไม่มี ระบบจะปฏิเสธการอัปโหลด ไม่ปล่อย original เป็น preview)
+vercel>=0.5.0        # Vercel Python SDK (vercel.blob) ใช้อัปโหลดไป Vercel Blob แบบ private - ใช้เมื่อ A4S_FILE_STORAGE=blob เท่านั้น

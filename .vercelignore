@@ -1,0 +1,9 @@
+backend/tests/
+backend/data/
+backend/logs/
+training/exports/
+uploads/
+.env
+.env.local
+__pycache__/
+*.pyc

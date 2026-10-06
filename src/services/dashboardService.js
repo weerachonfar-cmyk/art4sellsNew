@@ -1,0 +1,1 @@
+var DashboardService={summary:()=>{const u=Data.getAll("users");return{users:u.length,artists:u.filter(x=>x.role==="ARTIST").length,artworks:Data.find("artworks",w=>Const.PUBLIC_STATUSES.includes(w.status)).length,orders:Data.getAll("orders").length,reports:7}}};

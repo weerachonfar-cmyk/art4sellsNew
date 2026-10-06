@@ -1,0 +1,18 @@
+# ข้อมูลที่สร้างตอนรัน (มีรหัสผ่านที่ hash แล้ว, session, log) - ไม่ควรขึ้น Git
+backend/data/*.json
+backend/data/*.tmp
+backend/logs/
+training/exports/
+__pycache__/
+*.pyc
+# ไฟล์ความลับ / ค่าจริง - ห้าม commit (ใช้ .env.example เป็นแบบ)
+.env
+.env.local
+.env.*.local
+.vercel/
+dist/
+# ไฟล์ภาพที่อัปโหลดตอนพัฒนาในเครื่อง
+uploads/original/*
+uploads/preview/*
+uploads/delivery/*
+!uploads/**/.gitkeep
